@@ -64,6 +64,40 @@ void GetDetectingObject(Object<ObjT>& obj, const Object<ObjT>& picture, T x, T y
 }
 
 //
+// Paint detecting object on picture
+//
+// [in]     obj     - Input        detected object
+// [in/out] picture - Input/Output picture for detecting object on it
+// [in]     x       - x coordinate on pic for detecting object
+// [in]     y       - y coordinate on pic for detecting object
+//
+// return - void
+//
+template <typename T, typename ObjT>
+void PaintDetectingObject(const Object<ObjT>& obj, Object<ObjT>& picture, T x, T y)
+{
+    uint32_t height       = obj.m_height;
+    uint32_t width        = obj.m_width;
+    uint32_t widthPic     = picture.m_width;
+
+    // raws
+    for (T raw = y; raw < y + height; ++raw)
+    {
+        picture.m_data[raw * widthPic + x]         = 255;
+        picture.m_data[raw * widthPic + x + width] = 255;
+    }
+
+    // calomns
+    for (T col = x; col < x + width; ++col)
+    {
+        picture.m_data[y * widthPic + col]            = 255;
+        picture.m_data[(y + height) * widthPic + col] = 255;
+    }
+
+    return;
+}
+
+//
 // Find Square Error criterin
 //
 // [in] x       - Input x coordinate on picture to start processing
@@ -80,14 +114,16 @@ double SquareErrorCriterion(T x, T y, const Object<ObjT>& obj, const Object<ObjT
     uint32_t width     = obj.m_width;
     uint32_t widthPic  = picture.m_width;
     double   err       = 0;
+    double   dVal      = 0;
 
     for (T raw = 0; raw < height; ++raw)
     {
         for (T col = 0; col < width; ++col)
         {
-            err += sqrt(
-                obj.m_data[raw * width + col] * obj.m_data[raw * width + col] -
-                picture.m_data[(y + raw) * widthPic + x + col] * picture.m_data[(y + raw) * widthPic + x + col]);
+            dVal   = (double)obj.m_data[raw * width + col] - 
+                     (double)picture.m_data[(y + raw) * widthPic + x + col];
+
+            err += dVal * dVal;
         }
     }
 
@@ -116,19 +152,26 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
 
     double err = 0;
 
+    double max_en = obj.m_height * obj.m_width * 255. * 255.;
+
+    //std::cout << "errors: " << std::endl;
     for (uint32_t raw = 0; raw < height; ++raw)
     {
+        std::cout << raw << "|" << height << std::endl;
         for (uint32_t col = 0; col < width; ++ col)
         {
-            err = SquareErrorCriterion(col, raw, obj, picture);
+            //std::cout << col << " ";
+            err = SquareErrorCriterion(col, raw, obj, picture) / max_en;
+            //std::cout << err << " ";
             if (err <= koef)
             {
                 resultsCoord.push_back({raw, col});
                 resultsVal.push_back(err);
             }
         }
+      //  std::cout << std::endl;
     }
-
+    //std::cout << std::endl;
     double min = 0;
     x = 0;
     y = 0;
@@ -136,8 +179,10 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
     if (!resultsVal.empty())
        min = resultsVal.at(0);
 
+    std::cout << "find best: " << resultsVal.size() << std::endl;
     for (auto i = 0; i < resultsVal.size(); ++i)
     {
+     //   std::cout << resultsVal.at(i) << " ";
         if (min > resultsVal.at(i))
         {
             min = resultsVal.at(i);
@@ -145,6 +190,7 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
             y = resultsCoord.at(i).first;
         }
     }
+    std::cout << "min:" << min << std::endl;
 
     return;
 }

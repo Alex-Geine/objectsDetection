@@ -46,9 +46,49 @@ void TestDetection()
     g_toGrayScaleOut(w, h, obj.m_data, object);
     g_safeImage("obj.bmp", w, h, object);
 
+    // Noise picture
+    std::cout << "Type snr: " << std::endl;
+    double snr;
+    std::cin >> snr;
+    
+    Signal* noiseSig = new Signal(width, height);
+
+    std::complex<double>** noiseData = noiseSig->GetDataArray();
+
+    for (uint32_t i = 0; i < height; ++i)
+        for (uint32_t j = 0; j < width; ++j)
+            noiseData[i][j] = {cartData[i * width + j], 0}; 
+
+    g_noizeSignal(*noiseSig, snr);
+    noiseSig->GetPicture(cartData, false);
+
+    g_toGrayScaleOut(width, height, cartData, cartoon);
+    g_safeImage(std::string("NoizeSignal.bmp"), width, height, cartoon);
+
+    // Find object on picture
+    std::cout << "Find object on picture!" << std::endl;
+
+    std::cout << "Type coeff for detecting!" << std::endl;
+    double k;
+    std::cin >> k;
+
+    uint32_t x0, y0;
+
+    DetObj::DetectObject(obj, pic, k, x0, y0);
+    std::cout << "x0: " << x0 << ", y0: " << y0 << std::endl; 
+    DetObj::PaintDetectingObject(obj, pic, x0, y0);
+
+    // Save picture
+    std::cout << "save picture!" << std::endl;
+
+    g_toGrayScaleOut(width, height, pic.m_data, cartoon);
+    g_safeImage("detected.bmp", width, height, cartoon);
+
     delete[] cartoon;
     delete[] cartData;
     delete[] object;
+
+    delete noiseSig;
 }
 
 int main()
