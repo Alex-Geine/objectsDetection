@@ -1,3 +1,0 @@
-/mnt/i/projects/objectsDetecting/build/CMakeFiles/objectsDetecting.dir
-/mnt/i/projects/objectsDetecting/build/CMakeFiles/edit_cache.dir
-/mnt/i/projects/objectsDetecting/build/CMakeFiles/rebuild_cache.dir
