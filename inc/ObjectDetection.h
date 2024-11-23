@@ -142,10 +142,11 @@ double SquareErrorCriterion(T x, T y, const Object<ObjT>& obj, const Object<ObjT
 // return void
 //
 template<typename ObjT, typename T>
-void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double koef, T& x, T& y)
+std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double koef, T& x, T& y)
 {
     std::vector<std::pair<T,T>> resultsCoord;
     std::vector<double>         resultsVal;
+    std::vector<double>         results;
 
     uint32_t height    = picture.m_height - obj.m_height;
     uint32_t width     = picture.m_width - obj.m_width;
@@ -158,7 +159,7 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
     for (uint32_t raw = 0; raw < height; ++raw)
     {
         std::cout << raw << "|" << height << std::endl;
-        for (uint32_t col = 0; col < width; ++ col)
+        for (uint32_t col = 0; col < width; ++col)
         {
             //std::cout << col << " ";
             err = SquareErrorCriterion(col, raw, obj, picture) / max_en;
@@ -168,6 +169,7 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
                 resultsCoord.push_back({raw, col});
                 resultsVal.push_back(err);
             }
+            results.push_back(err);
         }
       //  std::cout << std::endl;
     }
@@ -192,7 +194,7 @@ void DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double k
     }
     std::cout << "min:" << min << std::endl;
 
-    return;
+    return results;
 }
 
 }   // end of DetObj nsp
