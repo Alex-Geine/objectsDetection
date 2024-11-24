@@ -133,16 +133,17 @@ double SquareErrorCriterion(T x, T y, const Object<ObjT>& obj, const Object<ObjT
 //
 // Function for detection objects on picture
 //
-// [in] obj     - Input object to detecting on picture
-// [in] picture - Input picture for detecting object on it
-// [in] koef    - Input koefficient for celection result
-// [out] x       - Output x coordinate on picture of detected object
-// [out] y       - Output y coordinate on picture of detecred object
+// [in] obj         - Input object to detecting on picture
+// [in] picture     - Input picture for detecting object on it
+// [in] koef        - Input koefficient for celection result
+// [out] x          - Output x coordinate on picture of detected object
+// [out] y          - Output y coordinate on picture of detecred object
+// [out] minErr     - Output min error value
 //
 // return void
 //
 template<typename ObjT, typename T>
-std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double koef, T& x, T& y)
+std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& picture, double koef, T& x, T& y, double& minErr)
 {
     std::vector<std::pair<T,T>> resultsCoord;
     std::vector<double>         resultsVal;
@@ -167,32 +168,32 @@ std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& pi
             if (err <= koef)
             {
                 resultsCoord.push_back({raw, col});
-                resultsVal.push_back(err);
+                resultsVal.push_back(sqrt(err));
             }
             results.push_back(err);
         }
       //  std::cout << std::endl;
     }
     //std::cout << std::endl;
-    double min = 0;
+    minErr = 0;
     x = 0;
     y = 0;
 
     if (!resultsVal.empty())
-       min = resultsVal.at(0);
+       minErr = resultsVal.at(0);
 
     std::cout << "find best: " << resultsVal.size() << std::endl;
     for (auto i = 0; i < resultsVal.size(); ++i)
     {
      //   std::cout << resultsVal.at(i) << " ";
-        if (min > resultsVal.at(i))
+        if (minErr > resultsVal.at(i))
         {
-            min = resultsVal.at(i);
+            minErr = resultsVal.at(i);
             x = resultsCoord.at(i).second;
             y = resultsCoord.at(i).first;
         }
     }
-    std::cout << "min:" << min << std::endl;
+    std::cout << "min:" << minErr << std::endl;
 
     return results;
 }

@@ -2,10 +2,55 @@
 #include "Picture.h"
 #include "ObjectDetection.h"
 
-const static double cos45   = 0.5;
-const static double cos45_n = 0.5;
-const static double sin45   = 0.5;
-const static double sin45_n = -0.5;
+template<typename T>
+void Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive)
+{
+    std::cout << "Rotate!" << std::endl;
+    s_out = (h + w) * 0.5;//diag * cos(betta);
+
+    std::cout << "Size: " << s_out << std::endl;
+    *data_out = new uint8_t[s_out * s_out];
+    int i1, j1;
+
+    int c_h = h / 2;
+    int c_w = w / 2;
+    int c_k = s_out / 2;
+
+    std::cout << "Start! " << std::endl;
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; ++j)
+        {
+            if (isPositive)
+            {
+                i1 = (i - c_h) - (j - c_w);
+                j1 = (i - c_h) + (j - c_w);
+
+                i1 *= 0.5;
+                j1 *= 0.5;
+                
+                // inverce translate
+                i1 += c_k;
+                j1 += c_k;
+            }
+            else
+            {
+                i1 = (i - c_h) + (j - c_w);
+                j1 = -(i - c_h) + (j - c_w);
+
+                i1 *= 0.5;
+                j1 *= 0.5;
+
+                // inverce translate
+                i1 += c_k;
+                j1 += c_k;
+            }
+            (*data_out)[i1 * s_out + j1] = data_in[i * w + j];
+        }
+    }
+
+    return;
+}
 
 void TestDetection()
 {
@@ -79,7 +124,9 @@ void TestDetection()
 
     uint32_t x0, y0;
 
-    std::vector<double> err = DetObj::DetectObject(obj, pic, k, x0, y0);
+    double min;
+
+    std::vector<double> err = DetObj::DetectObject(obj, pic, k, x0, y0, min);
     std::cout << "x0: " << x0 << ", y0: " << y0 << std::endl; 
     DetObj::PaintDetectingObject(obj, pic, x0, y0);
 
@@ -131,7 +178,11 @@ void TestDetectionAndRotation()
     uint32_t width    = 0;
     uint8_t* cartoon  = nullptr;
     uint8_t* cartData = nullptr;
+    uint8_t* cartoonRotate = nullptr;
+    uint8_t* cartDataRotate = nullptr;
     uint8_t* object   = nullptr;
+    uint8_t* objectRotateOne = nullptr;
+    uint8_t* objectRotateTwo = nullptr;
 
     g_loadImage("../Pic/corgi.bmp", width, height, &cartoon);
 
@@ -156,6 +207,45 @@ void TestDetectionAndRotation()
 
     DetObj::GetDetectingObject(obj, pic, x, y);
 
+    // Reverce data and obj
+    std::cout << "Rotate data: " << std::endl;
+    uint32_t picRotateSize;
+    uint32_t objRotateSize;
+
+    Rotate(cartData, height, width, &cartDataRotate, picRotateSize, false);
+    Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateOne, objRotateSize, true);
+    Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateTwo, objRotateSize, false);
+
+    cartoonRotate = new uint8_t[picRotateSize * picRotateSize * 3];
+
+    g_toGrayScaleOut(picRotateSize, picRotateSize, cartDataRotate, cartoonRotate);
+    g_safeImage("RotatePicture.bmp", picRotateSize, picRotateSize, cartoonRotate);
+
+    // Get new objects
+    DetObj::Object<uint8_t> objOne;
+    DetObj::Object<uint8_t> objTwo;
+    DetObj::Object<uint8_t> picNew;
+
+    picNew.m_delete = false;
+    picNew.m_data   = cartDataRotate;
+    picNew.m_height = picRotateSize;
+    picNew.m_width  = picRotateSize;
+
+    objOne.m_delete = false;
+    objOne.m_data   = objectRotateOne;
+    objOne.m_height = objRotateSize;
+    objOne.m_width  = objRotateSize;
+
+    objTwo.m_delete = false;
+    objTwo.m_data   = objectRotateTwo;
+    objTwo.m_height = objRotateSize;
+    objTwo.m_width  = objRotateSize;
+
+    uint8_t* objRotPic = new uint8_t[objRotateSize * objRotateSize * 3];
+    
+    g_toGrayScaleOut(objRotateSize, objRotateSize, objOne.m_data, objRotPic);
+    g_safeImage("objRotate.bmp", objRotateSize, objRotateSize, objRotPic);
+
     // Safe det Obj
     std::cout << "Safe Detect object!" << std::endl;
     
@@ -169,19 +259,19 @@ void TestDetectionAndRotation()
     double snr;
     std::cin >> snr;
     
-    Signal* noiseSig = new Signal(width, height);
+    Signal* noiseSig = new Signal(picRotateSize, picRotateSize);
 
     std::complex<double>** noiseData = noiseSig->GetDataArray();
 
-    for (uint32_t i = 0; i < height; ++i)
-        for (uint32_t j = 0; j < width; ++j)
-            noiseData[i][j] = {cartData[i * width + j], 0}; 
+    for (uint32_t i = 0; i < picRotateSize; ++i)
+        for (uint32_t j = 0; j < picRotateSize; ++j)
+            noiseData[i][j] = {cartDataRotate[i * picRotateSize + j], 0}; 
 
     g_noizeSignal(*noiseSig, snr);
-    noiseSig->GetPicture(cartData, false);
+    noiseSig->GetPicture(cartDataRotate, false);
 
-    g_toGrayScaleOut(width, height, cartData, cartoon);
-    g_safeImage(std::string("NoizeSignal.bmp"), width, height, cartoon);
+    g_toGrayScaleOut(picRotateSize, picRotateSize, cartDataRotate, cartoonRotate);
+    g_safeImage(std::string("NoizeSignal.bmp"), picRotateSize, picRotateSize, cartoonRotate);
 
     // Find object on picture
     std::cout << "Find object on picture!" << std::endl;
@@ -190,27 +280,34 @@ void TestDetectionAndRotation()
     double k;
     std::cin >> k;
 
-    uint32_t x0, y0;
+    uint32_t x_one, y_one, x_two, y_two;
+    double min1, min2;
 
-    std::vector<double> err = DetObj::DetectObject(obj, pic, k, x0, y0);
-    std::cout << "x0: " << x0 << ", y0: " << y0 << std::endl; 
-    DetObj::PaintDetectingObject(obj, pic, x0, y0);
+    std::vector<double> err  = DetObj::DetectObject(objOne, picNew, k, x_one, y_one, min1);
+    std::vector<double> err2 = DetObj::DetectObject(objOne, picNew, k, x_two, y_two, min2);
+
+    std::cout << "x_one: " << x_one << ", y_one: " << y_one << std::endl; 
+    std::cout << "x_two: " << x_two << ", y_two: " << y_two << std::endl;
+    std::cout << "min1: " << min1 << ", min2: " << min2 << std::endl;
+
+    if (min1 < min2)
+        DetObj::PaintDetectingObject(objOne, picNew, x_one, y_one);
+    else
+        DetObj::PaintDetectingObject(objOne, picNew, x_two, y_two);
 
     // Save picture
     std::cout << "save picture!" << std::endl;
 
-    g_toGrayScaleOut(width, height, pic.m_data, cartoon);
-    g_safeImage("detected.bmp", width, height, cartoon);
+    g_toGrayScaleOut(picRotateSize, picRotateSize, picNew.m_data, cartoonRotate);
+    g_safeImage("detected.bmp", picRotateSize, picRotateSize, cartoonRotate);
 
     // Save error picture
     std::cout << "Error picture! " << std::endl;
     
-    int errWidth = pic.m_width - obj.m_width;
-    int errHeight = pic.m_height - obj.m_height;
+    int errWidth = picNew.m_width - objOne.m_width;
+    int errHeight = picNew.m_height - objOne.m_height;
     Signal sig(errWidth, errHeight);
  
-    std::cout << "SizeErr: " << errWidth * errHeight << ", sizeErrVec: " << err.size() << std::endl;
-
     noiseData = sig.GetDataArray();
     for (int i = 0; i < errHeight; ++i)
         for (int j = 0; j < errWidth; ++j)
@@ -226,60 +323,15 @@ void TestDetectionAndRotation()
 
     delete[] cartoon;
     delete[] cartData;
+    delete[] cartoonRotate;
+    delete[] cartDataRotate;
     delete[] object;
+    delete[] objectRotateOne;
+    delete[] objectRotateTwo;
     delete[] errData;
     delete[] errDataPic;
 
     delete noiseSig;
-}
-
-template<typename T>
-void Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive)
-{
-    std::cout << "Rotate!" << std::endl;
-    s_out = std::ceil((double)sqrt( (double)h * (double)h + (double)w * (double)w));
-    std::cout << "Size: " << s_out << std::endl;
-    *data_out = new uint8_t[s_out * s_out];
-    int i1, j1;
-
-    int c_k = s_out / 2;
-    int c_h = h / 2;
-    int c_w = w / 2;
-
-    std::cout << "Start! " << std::endl;
-    for (int i = 0; i < h; ++i)
-    {
-        //std::cout << "i: " << i << std::endl;
-        for (int j = 0; j < w; ++j)
-        {
-            //std::cout << "j: " << j << std::endl;
-            if (isPositive)
-            {
-                // translate and rotate
-                i1 = (i - c_h)  - (j - c_w);
-                j1 = (i - c_h)  + (j - c_w);
-
-                i1 *= 0.5;
-                j1 *= 0.5;
-                
-                // inverce translate
-                i1 += c_k;
-                j1 += c_k;
-                //std::cout << i1 << " " << j1 << " ";    
-            }
-            else
-            {
-                i1 = i * 0.5 - j * (-0.5);
-                j1 = i * (-0.5) + j * 0.5;
-            }
-            if ((i1 >= s_out) || (j1 >= s_out) || (i1 < 0) || (j1 < 0))
-                std::cout << "Error: " << i1 << " " << j1 << ". i: " << i << ", j: " << j << std::endl;
-            (*data_out)[i1 * s_out + j1] = data_in[i * w + j];
-        }
-        //std::cout << std::endl;
-    }
-
-    return;
 }
 
 void TestRotation()
@@ -305,18 +357,11 @@ void TestRotation()
 
     uint32_t n_size;
 
-    Rotate(cartData, height, width, &cartDataRotate, n_size, true);
-
-    for (int i = 0; i < n_size * n_size; ++i)
-        std::cout << cartDataRotate[i] << " ";
-    std::cout << std::endl;
-
+    Rotate(cartData, height, width, &cartDataRotate, n_size, false);
     cartoonRotate = new uint8_t[n_size * n_size * 3];
 
     g_toGrayScaleOut(n_size, n_size, cartDataRotate, cartoonRotate);
-    std::cout << "Gray scale!" << std::endl;
     g_safeImage("Rotate.bmp", n_size, n_size, cartoonRotate);
-    std::cout << "Save image!" << std::endl;
 
     delete[] cartoon;
     delete[] cartData;
@@ -327,6 +372,7 @@ void TestRotation()
 int main()
 {
     //TestDetection();
-    TestRotation();
+    //TestRotation();
+    TestDetectionAndRotation();
     return 0;
 }
