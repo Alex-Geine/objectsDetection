@@ -160,7 +160,7 @@ std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& pi
     //std::cout << "errors: " << std::endl;
     for (uint32_t raw = 0; raw < height; ++raw)
     {
-        std::cout << raw << "|" << height << std::endl;
+        //std::cout << raw << "|" << height << std::endl;
         for (uint32_t col = 0; col < width; ++col)
         {
             //std::cout << col << " ";

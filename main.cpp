@@ -3,8 +3,9 @@
 #include "ObjectDetection.h"
 
 template<typename T>
-void Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive)
+std::vector<std::pair<int, int>> Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive, int& i_ref, int& j_ref)
 {
+    std::vector<std::pair<int, int>> res;
     std::cout << "Rotate!" << std::endl;
     s_out = (h + w) * 0.5;//diag * cos(betta);
 
@@ -46,10 +47,16 @@ void Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPos
                 j1 += c_k;
             }
             (*data_out)[i1 * s_out + j1] = data_in[i * w + j];
+            res.push_back({i1, j1});
+            if ((i == i_ref) && (j == j_ref))
+            {
+               i_ref = i1;
+               j_ref = j1;
+            }
         }
     }
 
-    return;
+    return res;
 }
 
 void TestDetection()
@@ -212,9 +219,10 @@ void TestDetectionAndRotation()
     uint32_t picRotateSize;
     uint32_t objRotateSize;
 
-    Rotate(cartData, height, width, &cartDataRotate, picRotateSize, false);
-    Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateOne, objRotateSize, true);
-    Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateTwo, objRotateSize, false);
+    int i = 0,j = 0,i_ref = y, j_ref = x;
+    Rotate(cartData, height, width, &cartDataRotate, picRotateSize, true, i_ref, j_ref);
+    std::vector<std::pair<int, int>> objRotOneIds = Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateOne, objRotateSize, true,i,j);
+    std::vector<std::pair<int, int>> objRotTwoIds = Rotate(obj.m_data, obj.m_height, obj.m_width, &objectRotateTwo, objRotateSize, false,i,j);
 
     cartoonRotate = new uint8_t[picRotateSize * picRotateSize * 3];
 
@@ -235,16 +243,21 @@ void TestDetectionAndRotation()
     objOne.m_data   = objectRotateOne;
     objOne.m_height = objRotateSize;
     objOne.m_width  = objRotateSize;
+    objOne.m_idsOfObj = objRotOneIds;
 
     objTwo.m_delete = false;
     objTwo.m_data   = objectRotateTwo;
     objTwo.m_height = objRotateSize;
     objTwo.m_width  = objRotateSize;
+    objTwo.m_idsOfObj = objRotTwoIds;
 
     uint8_t* objRotPic = new uint8_t[objRotateSize * objRotateSize * 3];
     
     g_toGrayScaleOut(objRotateSize, objRotateSize, objOne.m_data, objRotPic);
     g_safeImage("objRotate.bmp", objRotateSize, objRotateSize, objRotPic);
+
+    g_toGrayScaleOut(objRotateSize, objRotateSize, objTwo.m_data, objRotPic);
+    g_safeImage("objRotateTwo.bmp", objRotateSize, objRotateSize, objRotPic);
 
     // Safe det Obj
     std::cout << "Safe Detect object!" << std::endl;
@@ -284,10 +297,11 @@ void TestDetectionAndRotation()
     double min1, min2;
 
     std::vector<double> err  = DetObj::DetectObject(objOne, picNew, k, x_one, y_one, min1);
-    std::vector<double> err2 = DetObj::DetectObject(objOne, picNew, k, x_two, y_two, min2);
+    std::vector<double> err2 = DetObj::DetectObject(objTwo, picNew, k, x_two, y_two, min2);
 
     std::cout << "x_one: " << x_one << ", y_one: " << y_one << std::endl; 
     std::cout << "x_two: " << x_two << ", y_two: " << y_two << std::endl;
+    std::cout << "x_ref: " << j_ref << ", y_ref: " << i_ref << std::endl;
     std::cout << "min1: " << min1 << ", min2: " << min2 << std::endl;
 
     if (min1 < min2)
@@ -356,8 +370,8 @@ void TestRotation()
     g_toGrayScaleIn(width, height, cartoon, cartData);
 
     uint32_t n_size;
-
-    Rotate(cartData, height, width, &cartDataRotate, n_size, false);
+    int i = 0,j = 0;
+    Rotate(cartData, height, width, &cartDataRotate, n_size, false,i,j);
     cartoonRotate = new uint8_t[n_size * n_size * 3];
 
     g_toGrayScaleOut(n_size, n_size, cartDataRotate, cartoonRotate);
