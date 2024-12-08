@@ -90,13 +90,27 @@ void MainWindow::on_pushButton_clicked()
 // Find object function
 void MainWindow::FindObj(double snr, double koef, bool rotDir)
 {
+    noise_pic = new uint8_t[height * width];
+
+    Signal* noiseSig = new Signal(width, height);
+    std::complex<double>** noiseData = noiseSig->GetDataArray();
+
+     for (uint32_t i = 0; i < height; ++i)
+        for (uint32_t j = 0; j < width; ++j)
+            noiseData[i][j] = {(double)picture[i * width + j], 0};
+
+    g_noizeSignal(*noiseSig, snr);
+    noiseSig->GetPicture(noise_pic, false);
+
     DetObj::Object<uint8_t> picNew;
     uint8_t* picRot = nullptr;
 
     // Rotate picture
     i_ref = obj_y;
     j_ref = obj_x;
-    Rotate(picture, height, width, &picRot, picRotateSize, rotDir, i_ref, j_ref);
+    Rotate(noise_pic, height, width, &picRot, picRotateSize, rotDir, i_ref, j_ref);
+
+    delete[] noise_pic;
 
     ui->x_ref_box->setValue(j_ref);
     ui->y_ref_box->setValue(i_ref);
@@ -106,15 +120,6 @@ void MainWindow::FindObj(double snr, double koef, bool rotDir)
     picNew.m_height = picRotateSize;
     picNew.m_width  = picRotateSize;
 
-    Signal* noiseSig = new Signal(picRotateSize, picRotateSize);
-    std::complex<double>** noiseData = noiseSig->GetDataArray();
-
-     for (uint32_t i = 0; i < picRotateSize; ++i)
-        for (uint32_t j = 0; j < picRotateSize; ++j)
-            noiseData[i][j] = {(double)picRot[i * picRotateSize + j], 0};
-
-    g_noizeSignal(*noiseSig, snr);
-    noiseSig->GetPicture(picRot, false);
 
     uint32_t x_one, y_one, x_two, y_two, x, y;
     double min1, min2;

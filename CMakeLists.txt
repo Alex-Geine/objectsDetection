@@ -15,4 +15,13 @@ add_executable(${PROJECT_NAME}
                src/TestSignal.cpp
                main.cpp)
 
+add_executable(analisys 
+               src/GaussSignal.cpp
+               src/RealSignal.cpp
+               src/Signal.cpp
+               src/SignalFunctions.cpp
+               src/TestSignal.cpp
+               analise.cpp)
+
 target_link_libraries(${PROJECT_NAME} ${ImageMagick_LIBRARIES})
+target_link_libraries(analisys ${ImageMagick_LIBRARIES})

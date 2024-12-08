@@ -155,12 +155,12 @@ std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& pi
 
     double err = 0;
 
-    double max_en = obj.m_height * obj.m_width * 255. * 255.;
+    double max_en = (double)obj.m_height * (double)obj.m_width * 255. * 255.;
 
     //std::cout << "errors: " << std::endl;
     for (uint32_t raw = 0; raw < height; ++raw)
     {
-        std::cout << raw << "|" << height << std::endl;
+//        std::cout << raw << "|" << height << std::endl;
         for (uint32_t col = 0; col < width; ++col)
         {
             //std::cout << col << " ";
@@ -183,7 +183,7 @@ std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& pi
     if (!resultsVal.empty())
        minErr = resultsVal.at(0);
 
-    std::cout << "find best: " << resultsVal.size() << std::endl;
+    //std::cout << "find best: " << resultsVal.size() << std::endl;
     for (auto i = 0; i < resultsVal.size(); ++i)
     {
      //   std::cout << resultsVal.at(i) << " ";
@@ -194,7 +194,7 @@ std::vector<double> DetectObject(const Object<ObjT>& obj, const Object<ObjT>& pi
             y = resultsCoord.at(i).first;
         }
     }
-    std::cout << "min:" << minErr << std::endl;
+    //std::cout << "min:" << minErr << std::endl;
 
     return results;
 }

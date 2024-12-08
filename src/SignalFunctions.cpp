@@ -214,7 +214,7 @@ bool g_noizeSignal(Signal& sig, double Db)
     double energyNoise = noise.GetEnergy();
     double koef        = 1. / std::pow(10, Db / 10);
 
-    std::cout << "koef: " << koef << ", Db: " << Db << std::endl;
+    //std::cout << "koef: " << koef << ", Db: " << Db << std::endl;
 
     for (uint64_t i = 0; i < strings; ++i)
          for (uint64_t j = 0; j < colomns; ++j)

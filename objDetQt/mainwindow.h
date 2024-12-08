@@ -9,8 +9,8 @@
 #include "ObjectDetection.h"
 
 template<typename T>
- std::vector<std::pair<int, int>> Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive, int& i_ref, int& j_ref)
-  {
+std::vector<std::pair<int, int>> Rotate(uint8_t* data_in, T h, T w, uint8_t** data_out, T& s_out, bool isPositive, int& i_ref, int& j_ref)
+{
      std::vector<std::pair<int, int>> res;
      s_out = (h + w) * 0.5;//diag * cos(betta);
 
@@ -121,6 +121,7 @@ private:
 
     // Data
     uint8_t* picture          = nullptr;
+    uint8_t* noise_pic        = nullptr;
     uint8_t* rotl_obj_picture = nullptr;
     uint8_t* rotr_obj_picture = nullptr;
 
